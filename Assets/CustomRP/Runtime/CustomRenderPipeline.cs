@@ -17,9 +17,6 @@ public class CustomRenderPipeline : RenderPipeline
     CameraRenderer renderer = new CameraRenderer();
     protected override void Render(ScriptableRenderContext context, Camera[] cameras)
     {
-        //启用SRP合批 set pass call
-        GraphicsSettings.useScriptableRenderPipelineBatching = true;
-
         for (int i = 0; i < cameras.Length; i++)
         {
             renderer.Render(context, cameras[i], useDynamicBatching, useGPUInstancing, shadowSettings);

@@ -12,7 +12,7 @@ public class Shadows
 	};
 
     //可投射阴影的平行光数量
-    const int maxShadowedDirectionalLightCount = 1;
+    const int maxShadowedDirectionalLightCount = 4;
     struct ShadowedDirectionalLight{
         public int visibleLightIndex;
     }
@@ -74,16 +74,28 @@ public class Shadows
         buffer.BeginSample(bufferName);
         ExecuteBuffer();
 
+        //分割图块大小和数量
+        int split = ShadowedDirectionalLightCount <= 1 ? 1 : 2;
+        int tileSize = atlasSize / split;
+
         //遍历所有方向光渲染阴影
         for (int i = 0; i < ShadowedDirectionalLightCount; i++)
         {
-            RenderDirectionalShadows(i, atlasSize);
+            RenderDirectionalShadows(i, split, tileSize);
         }
 
         buffer.EndSample(bufferName);
+        ExecuteBuffer();
     }
 
-    void RenderDirectionalShadows(int index, int tileSize){
+    void SetTileViewport(int index, int split, int tileSize){
+        //计算索引图块的偏移位置
+        Vector2 offset = new Vector2(index % split, index / split);
+        //设置渲染视口,拆分成多个图块
+        buffer.SetViewport(new Rect(offset.x * tileSize, offset.y * tileSize, tileSize, tileSize));
+    }
+
+    void RenderDirectionalShadows(int index, int split, int tileSize){
         ShadowedDirectionalLight light = ShadowedDirectionalLights[index];
         var shadowSettings = new ShadowDrawingSettings(cullingResults, light.visibleLightIndex);
 
@@ -91,6 +103,7 @@ public class Shadows
             0f, out Matrix4x4 viewMatrix, out Matrix4x4 projectionMatrix, out ShadowSplitData splitData);
 
         shadowSettings.splitData = splitData;
+        SetTileViewport(index, split, tileSize);
         buffer.SetViewProjectionMatrices(viewMatrix, projectionMatrix);
         ExecuteBuffer();
         context.DrawShadows(ref shadowSettings);
